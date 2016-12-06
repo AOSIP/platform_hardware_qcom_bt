@@ -1814,6 +1814,8 @@ int rome_soc_init(int fd, char *bdaddr)
     dnld_fd = fd;
     ALOGI(" %s ", __FUNCTION__);
     RESERVED(bdaddr);
+    char rome_rampatch_path[NAME_MAX];
+    char rome_nvm_path[NAME_MAX];
 
     /* If wipower charging is going on in embedded mode then start hand off req */
     if (wipower_flag == WIPOWER_IN_EMBEDDED_MODE && wipower_handoff_ready != NON_WIPOWER_MODE)
@@ -1894,16 +1896,43 @@ int rome_soc_init(int fd, char *bdaddr)
             nvm_file_path = ROME_NVM_TLV_2_0_1_PATH;
             goto download;
         case ROME_VER_3_0:
-            rampatch_file_path = ROME_RAMPATCH_TLV_3_0_0_PATH;
-            nvm_file_path = ROME_NVM_TLV_3_0_0_PATH;
+            rampatch_file_path = ROME_RAMPATCH_TLV_3_0_0_NAME;
+            nvm_file_path = ROME_NVM_TLV_3_0_0_NAME;
             fw_su_info = ROME_3_1_FW_SU;
             fw_su_offset = ROME_3_1_FW_SW_OFFSET;
-            goto download;
+            goto check_paths;
         case ROME_VER_3_2:
-            rampatch_file_path = ROME_RAMPATCH_TLV_3_0_2_PATH;
-            nvm_file_path = ROME_NVM_TLV_3_0_2_PATH;
+            rampatch_file_path = ROME_RAMPATCH_TLV_3_0_2_NAME;
+            nvm_file_path = ROME_NVM_TLV_3_0_2_NAME;
             fw_su_info = ROME_3_2_FW_SU;
             fw_su_offset =  ROME_3_2_FW_SW_OFFSET;
+
+check_paths:
+        /* Check the two valid paths for the file */
+        snprintf(rome_rampatch_path, NAME_MAX, "%s/%s", ROME_NV_FW_PATH, rampatch_file_path);
+        if (access(rome_rampatch_path, R_OK) != 0) {
+            snprintf(rome_rampatch_path, NAME_MAX, "%s/%s", ROME_NV_FW_ALT_PATH, rampatch_file_path);
+            if (access(rome_rampatch_path, R_OK) != 0) {
+                ALOGE("%s: Could not find a valid rampath file!", __FUNCTION__);
+                goto error;
+            }
+        }
+        /* Now build the real rampatch file path */
+        rampatch_file_path = rome_rampatch_path;
+        ALOGV("%s: rampatch_file_path is: %s", __FUNCTION__, rampatch_file_path);
+
+        /* Check the two valid paths for the file */
+        snprintf(rome_nvm_path, NAME_MAX, "%s/%s", ROME_NV_FW_ALT_PATH, nvm_file_path);
+        if (access(rome_nvm_path, R_OK) != 0) {
+            snprintf(rome_nvm_path, NAME_MAX, "%s/%s", ROME_NV_FW_ALT_PATH, nvm_file_path);
+            if (access(rome_nvm_path, R_OK) != 0) {
+                ALOGE("%s: Could not find a valid nvm file!", __FUNCTION__);
+                goto error;
+            }
+        }
+        /* Now build the real nvm file path */
+        nvm_file_path = rome_nvm_path;
+        ALOGV("%s: nvm_file_path is: %s", __FUNCTION__, nvm_file_path);
 
 download:
             /* Change baud rate 115.2 kbps to 3Mbps*/
