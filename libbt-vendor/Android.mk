@@ -41,6 +41,8 @@ LOCAL_CFLAGS += -DPANIC_ON_SOC_CRASH
 LOCAL_CFLAGS += -DENABLE_DBG_FLAGS
 endif
 
+LOCAL_CFLAGS += -Wno-error
+
 LOCAL_C_INCLUDES += \
         $(LOCAL_PATH)/include \
         external/bluetooth/bluedroid/hci/include \
